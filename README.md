@@ -1,105 +1,135 @@
-# Windows Proxy Server & Manager
+# Windows 代理管理器 (Windows Proxy Manager) 使用说明
 
-A lightweight, high-performance HTTP/SOCKS5 proxy server for Windows, written in C++ (server) and C# (GUI manager).
+Windows Proxy Manager 是一个轻量级、高性能的 Windows 代理管理工具，支持 HTTP/HTTPS 和 SOCKS5 协议，提供系统全局代理、流量监控和路由管理功能。
 
-## Features
+## 目录
+- [安装与运行](#安装与运行)
+- [功能界面](#功能界面)
+- [系统代理设置](#系统代理设置)
+- [高级配置](#高级配置)
+- [常见问题](#常见问题)
 
-- **Dual Protocol Support**: Handles both HTTP/HTTPS and SOCKS5/SOCKS4 connections.
-- **High Performance**: Built with Windows IOCP (I/O Completion Ports) for efficient async I/O handling.
-- **Upstream Proxy**: Supports chaining to upstream proxies (HTTP/SOCKS5) with authentication.
-- **Rule-Based Routing**:
-  - **Direct**: Direct connection for specific domains.
-  - **Proxy**: Route specific domains through upstream.
-  - **GFWList**: Automatic integration with GFWList for smart routing.
-- **Authentication**: Basic authentication support for client connections.
-- **Local Bypass**: Automatically bypasses authentication for local connections (127.0.0.1) and system proxy traffic.
-- **Traffic Monitoring**: Real-time speed display, traffic statistics, and visual charts.
-- **System Integration**:
-  - One-click "Set System Proxy" to route all Windows traffic.
-  - Minimize to System Tray.
-  - Auto-start server on launch.
+## 安装与运行
 
-## Components
+### 1. 运行环境
+- 操作系统：Windows 10 / 11 (64位)
+- 依赖组件：.NET Framework 4.5+ (Windows通常已内置)
 
-1.  **ProxyServer.exe**: The core proxy engine (C++).
-2.  **ProxyManager.exe**: The graphical management interface (C# / WPF).
+### 2. 启动软件
+1.  找到软件目录（通常包含 `ProxyManager.exe` 和 `ProxyServer.exe`）。
+2.  双击运行 **`ProxyManager.exe`**。
+3.  软件启动后会自动启动代理服务，您可以在日志窗口看到 "Server started" 提示。
+    > **注意**：程序具有防止多开功能，如果提示程序已在运行，请检查系统托盘或任务管理器。
 
-## Installation & Usage
+## 功能界面
 
-### 1. Prerequisites
-- Windows 10/11 (64-bit recommended)
-- .NET Framework 4.5 or later (usually pre-installed)
-- [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) (if not statically linked)
+### 主界面
+- **配置编辑区**：顶部文本框用于直接编辑配置文件 (`proxy.conf`)。
+- **功能按钮**：
+  - **应用配置**：保存当前修改的配置并重启服务，使其立即生效。
+  - **更新 GFWList**：从 GitHub 下载最新的 GFWList 规则文件（需要网络连接）。
+  - **启动服务 / 停止服务**：手动控制后台代理服务的启停。
+- **选项**：
+  - **系统代理**：勾选后将接管 Windows 系统所有流量（详见下文）。
+  - **开机自启**：勾选后软件将随 Windows 启动自动运行并开启代理。
+- **状态监控**：
+  - **状态**：显示当前运行状态。
+  - **速率**：实时显示当前的上传/下载速率。
+- **流量图表**：动态展示实时的网络流量波形（绿色为上传，蓝色为下载）。
+- **日志窗口**：底部黑色区域显示运行日志和错误信息。
 
-### 2. Running
-1.  Navigate to the release folder (e.g., `build_static/Release`).
-2.  Ensure `ProxyServer.exe` and `ProxyManager.exe` are in the same directory.
-3.  Run **`ProxyManager.exe`**.
-    - The server will start automatically.
-    - You can see the logs and traffic stats in the main window.
+### 系统托盘
+- 软件支持最小化到系统托盘（右下角小图标）。
+- **最小化**：点击窗口右上角的“最小化”或“关闭”按钮，软件将隐藏到托盘，服务继续在后台运行。
+- **还原**：双击托盘图标即可还原主界面，或右键选择“打开”。
+- **退出**：右键点击托盘图标，选择 **退出** 即可完全退出程序并停止服务（同时自动清理系统代理设置）。
 
-### 3. Configuration (GUI)
-The configuration is stored in `proxy.conf` and can be edited directly in the GUI.
+## 系统代理设置
 
-**Basic Config:**
+软件支持一键设置 Windows 全局系统代理：
+
+1.  在主界面点击勾选 **"系统代理"** 复选框。
+2.  此时，Windows 的系统代理将被设置为 `127.0.0.1:8080`（或您配置的端口）。
+3.  浏览器（Chrome, Edge等）和其他遵循系统代理的软件将自动通过本代理上网。
+4.  **免密访问**：开启系统代理后，本机访问代理将自动通过身份验证，无需手动输入密码。
+5.  取消勾选或退出软件时，系统代理会自动恢复。
+
+## 高级配置
+
+您可以在主界面的文本框中直接修改配置，修改后请点击 **"应用配置"**。
+
+### 1. 基础设置
+设置代理服务器监听的 IP 和端口：
 ```conf
-# Bind Address (Default: 0.0.0.0 8080)
+# 格式: SERVER <IP> <Port>
 SERVER 0.0.0.0 8080
-
-# Client Whitelist (Optional)
-# ALLOW_IP 127.0.0.1,192.168.1.0/24
-
-# Authentication (Optional)
-# USER admin 123456
 ```
 
-**Upstream Proxy (Optional):**
-Add an upstream server (e.g., a local Shadowsocks/V2Ray node):
+### 2. 用户认证
+设置连接代理所需的用户名和密码（可选）：
 ```conf
-# UPSTREAM <id> <type> <host> <port> [user] [pass]
-# Type: SOCKS5 or HTTP
+# 格式: USER <用户名> <密码>
+USER admin 123456
+```
+> 提示：本机（127.0.0.1）访问会自动免密。
+
+### 3. 客户端白名单 (WHITELIST)
+设置允许连接代理的客户端 IP，支持单个 IP、CIDR 网段和 IP 范围：
+```conf
+# 格式: WHITELIST <IP列表> (逗号分隔)
+# 示例:
+WHITELIST 10.0.0.1-10.0.0.10,192.168.1.0/24,192.168.2.2
+```
+
+### 4. 上游代理 (Upstream)
+如果您需要通过其他代理服务器（如 Shadowsocks、V2Ray 的本地端口）上网，可以配置上游代理：
+```conf
+# 格式: UPSTREAM <ID> <类型> <IP> <端口> [用户名] [密码]
+# 类型支持: SOCKS5 或 HTTP
 UPSTREAM local_ss SOCKS5 127.0.0.1 1080
 ```
 
-**Routing Rules:**
+### 5. 路由规则 (RULE)
+设置特定域名的访问规则，支持通配符：
 ```conf
-# Route google.com through 'local_ss' upstream
-RULE google.com local_ss
+# 格式: RULE <模式> <上游ID>
 
-# Use GFWList for automatic routing
+# 示例 1: 访问 baidu.com 及其子域名 (如 tieba.baidu.com) 走 local_ss 代理
+RULE baidu.com local_ss
+# 或者显式使用通配符
+RULE *.baidu.com local_ss
+
+# 示例 2: 匹配多级子域名
+RULE *.*.google.com local_ss
+
+# 示例 3: 启用 GFWList 自动分流 (需要先配置好上游)
 GFWLIST_UPSTREAM local_ss
 ```
 
-### 4. System Proxy
-- Check **"Set System Proxy"** in the GUI to automatically configure Windows to use this proxy for all supported applications.
-- Uncheck or exit the application to restore system settings.
+### 6. 外部规则文件 (RULE_FILE)
+如果规则较多，可以将其保存在单独的文件中加载：
+```conf
+# 格式: RULE_FILE <文件路径> <上游ID>
+# 文件路径可以是相对路径或绝对路径
+RULE_FILE my_rules.txt local_ss
+```
+> `my_rules.txt` 内容示例：
+> ```
+> google.com
+> youtube.com
+> *.twitter.com
+> ```
 
-### 5. Minimize to Tray
-- Clicking the "Close" (X) button or Minimize button will hide the application to the system tray.
-- Double-click the tray icon to restore.
-- Right-click the tray icon and select **Exit** to fully close the application and stop the server.
+## 常见问题
 
-## Building from Source
+**Q: 启动时提示端口被占用？**
+A: 请检查是否已经运行了该程序（检查托盘图标），或者其他软件占用了 8080 端口。您可以修改配置文件中的端口号（如改为 8081），然后点击 "应用配置"。
 
-### Requirements
-- Visual Studio 2022 (C++ Desktop Development & .NET Desktop Development)
-- CMake 3.10+
+**Q: 为什么点击关闭按钮没有退出程序？**
+A: 为了防止误关闭导致代理中断，点击关闭按钮默认会最小化到托盘。请在系统托盘图标上右键点击 "退出" 来彻底退出。
 
-### Steps
-1.  **Generate Project**:
-    ```powershell
-    mkdir build
-    cd build
-    cmake ..
-    ```
-2.  **Build**:
-    ```powershell
-    cmake --build . --config Release
-    ```
-3.  **Build GUI** (if not built by CMake):
-    ```powershell
-    csc /target:winexe /out:Release\ProxyManager.exe /reference:PresentationCore.dll ... src\gui\SimpleGui.cs
-    ```
-
-## License
-MIT License
+**Q: 开启系统代理后无法上网？**
+A: 
+1. 请检查上游代理（如果有配置）是否正常运行。
+2. 检查是否有其他代理插件（如浏览器插件）冲突。
+3. 查看底部日志窗口是否有报错信息。
